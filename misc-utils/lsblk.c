@@ -1078,6 +1078,7 @@ static int set_device(struct lsblk_device *dev,
 	return 0;
 }
 
+
 static int process_blkdev(struct lsblk_device *dev, struct lsblk_device *parent,
 			  int do_partitions, const char *part_name);
 
@@ -1089,7 +1090,7 @@ static int list_partitions(struct lsblk_device *wholedisk_dev, struct lsblk_devi
 {
 	DIR *dir;
 	struct dirent *d;
-	struct lsblk_device part_dev = { NULL };
+	struct lsblk_device part_dev = { .parent = NULL };
 	int r = -1;
 
 	assert(wholedisk_dev);
@@ -1192,7 +1193,7 @@ static int list_deps(struct lsblk_device *dev)
 {
 	DIR *dir;
 	struct dirent *d;
-	struct lsblk_device dep = { NULL };
+	struct lsblk_device dep = { .parent = NULL };
 	const char *depname;
 
 	assert(dev);
@@ -1253,7 +1254,7 @@ static int iterate_block_devices(void)
 {
 	DIR *dir;
 	struct dirent *d;
-	struct lsblk_device dev = { NULL };
+	struct lsblk_device dev = { .parent = NULL };
 	struct path_cxt *pc = ul_new_path(_PATH_SYS_BLOCK);
 
 	if (!pc)
@@ -1296,7 +1297,7 @@ done:
 
 static int process_one_device(char *devname)
 {
-	struct lsblk_device parent = { NULL }, dev = { NULL };
+	struct lsblk_device parent = { .parent = NULL }, dev = { .parent = NULL };
 	struct stat st;
 	char buf[PATH_MAX + 1], *name = NULL, *diskname = NULL;
 	dev_t disk = 0;
