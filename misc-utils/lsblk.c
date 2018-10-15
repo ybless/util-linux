@@ -1298,7 +1298,7 @@ static int iterate_block_devices(struct lsblk_devtree *tr)
 				continue;
 			}
 			lsblk_devtree_add_device(tr, dev);
-			lsblk_unref_device(dev);
+			lsblk_unref_device(dev);		/* keep it referenced by devtree only */
 		} else
 			DBG(DEV, ul_debug(" %s: already processed", d->d_name));
 
@@ -1522,7 +1522,7 @@ static void check_sysdevblock(void)
 int main(int argc, char *argv[])
 {
 	struct lsblk _ls = { .sort_id = -1, .flags = LSBLK_TREE };
-	struct lsblk_devtree *tr;
+	struct lsblk_devtree *tr = NULL;
 	int c, status = EXIT_FAILURE;
 	char *outarg = NULL;
 	size_t i;
@@ -1847,6 +1847,7 @@ leave:
 
 	lsblk_mnt_deinit();
 	lsblk_properties_deinit();
+	lsblk_unref_devtree(tr);
 
 	return status;
 }
