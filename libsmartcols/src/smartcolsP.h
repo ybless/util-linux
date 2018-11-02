@@ -127,12 +127,17 @@ enum {
 
 struct libscols_group {
 	int     refcount;
-	size_t	seqnum;
-	int	state;			/* SCOLS_GRSTATE_* */
+
+	size_t	noverlaps;
 
 	struct list_head gr_members;	/* head of line->ln_group */
 	struct list_head gr_children;	/* head of line->ln_children */
 	struct list_head gr_groups;	/* member of table->tb_groups */
+
+	int	state;			/* SCOLS_GRSTATE_* */
+
+	unsigned int overlap_flag : 1;
+
 };
 
 /*
@@ -239,6 +244,12 @@ static inline int scols_iter_is_last(const struct libscols_iter *itr)
 	return itr->p == itr->head;
 }
 
+/*
+ * table.c
+ */
+int scols_table_next_group(struct libscols_table *tb,
+                          struct libscols_iter *itr,
+                          struct libscols_group **gr);
 
 
 /*
@@ -323,5 +334,14 @@ static inline int is_last_column(struct libscols_column *cl)
 		return 1;
 	return 0;
 }
+
+static inline int is_last_group_member(struct libscols_line *ln)
+{
+	if (!ln || !ln->group)
+		return 0;
+
+	return list_entry_is_last(&ln->ln_groups, &ln->group->gr_members);
+}
+
 
 #endif /* _LIBSMARTCOLS_PRIVATE_H */

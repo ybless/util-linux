@@ -134,6 +134,28 @@ void scols_unref_table(struct libscols_table *tb)
 	}
 }
 
+/* Private API */
+int scols_table_next_group(struct libscols_table *tb,
+			  struct libscols_iter *itr,
+			  struct libscols_group **gr)
+{
+	int rc = 1;
+
+	if (!tb || !itr || !gr)
+		return -EINVAL;
+	*gr = NULL;
+
+	if (!itr->head)
+		SCOLS_ITER_INIT(itr, &tb->tb_groups);
+	if (itr->p != itr->head) {
+		SCOLS_ITER_ITERATE(itr, *gr, struct libscols_group, gr_groups);
+		rc = 0;
+	}
+
+	return rc;
+}
+
+
 /**
  * scols_table_set_name:
  * @tb: a pointer to a struct libscols_table instance

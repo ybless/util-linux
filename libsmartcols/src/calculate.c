@@ -32,6 +32,97 @@ static void dbg_columns(struct libscols_table *tb)
 		dbg_column(tb, cl);
 }
 
+static int group_overlap_check_line(struct libscols_group *gr, struct libscols_line *ln, int *ingroup)
+{
+	struct libscols_iter itr;
+	struct libscols_line *child;
+	int rc = 0;
+
+	/* end of the group */
+	if (ln->group == gr && is_last_group_member(ln)) {
+		DBG(GROUP, ul_debugobj(gr, "%p terminates group", ln));
+		return 1;
+	}
+	/* begin of the group */
+	if (!*ingroup && ln->group && ln->group == gr)
+		*ingroup = 1;
+
+	scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
+	while (rc == 0 && scols_line_next_child(ln, &itr, &child) == 0)
+		rc = group_overlap_check_line(gr, child, ingroup);
+
+	if (*ingroup && ln->group && ln->group != gr) {
+		DBG(GROUP, ul_debugobj(gr, "%p is another group=%p", ln, ln->group));
+		ln->group->overlap_flag = 1;
+	}
+	return 0;
+}
+
+static void groups_ovarlap_cleanup(struct libscols_table *tb)
+{
+	struct libscols_iter itr;
+	struct libscols_group *gr;
+
+	scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
+	while (scols_table_next_group(tb, &itr, &gr) == 0)
+		gr->overlap_flag = 0;
+}
+
+static size_t groups_ovarlap_count(struct libscols_table *tb)
+{
+	struct libscols_iter itr;
+	struct libscols_group *gr;
+	int ct = 0;
+
+	scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
+	while (scols_table_next_group(tb, &itr, &gr) == 0)
+		ct += (gr->overlap_flag == 1 ? 1 : 0);
+	return ct;
+}
+
+static size_t group_count_overlaps(struct libscols_table *tb, struct libscols_group *gr)
+{
+	struct libscols_iter itr;
+	struct libscols_line *ln;
+	int ingroup = 0;
+
+	groups_ovarlap_cleanup(tb);
+
+	scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
+	while (scols_table_next_line(tb, &itr, &ln) == 0) {
+		/*
+		 * The grouping feature is supported independetly on
+		 * parent->child relationship. Let's check overlaps on
+		 * tree root nodes -- it works for trees as well as for
+		 * non-trees tables.
+		 */
+		if (ln->parent)
+			continue;
+		if (group_overlap_check_line(gr, ln, &ingroup) == 1)
+			break;
+	}
+
+	/* all group tested -- summarize result */
+	gr->noverlaps = groups_ovarlap_count(tb);
+	DBG(GROUP, ul_debugobj(gr, "noverlaps: %zu", gr->noverlaps));
+	return gr->noverlaps;
+}
+
+
+static size_t table_ovarlapping_ngroups(struct libscols_table *tb)
+{
+	struct libscols_iter itr;
+	struct libscols_group *gr;
+	size_t ct = 0;
+
+	scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
+	while (scols_table_next_group(tb, &itr, &gr) == 0) {
+		size_t n = group_count_overlaps(tb, gr);
+		ct = max(n, ct);
+	}
+	DBG(TAB, ul_debugobj(tb, "noverlaps: %zu", ct));
+	return ct;
+}
 
 /*
  * This function counts column width.
@@ -148,6 +239,7 @@ int __scols_calculate(struct libscols_table *tb, struct libscols_buffer *buf)
 	DBG(TAB, ul_debugobj(tb, "recounting widths (termwidth=%zu)", tb->termwidth));
 
 	colsepsz = mbs_safe_width(colsep(tb));
+	tb->ngroups = table_ovarlapping_ngroups(tb);
 
 	/* set basic columns width
 	 */
