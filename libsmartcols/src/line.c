@@ -47,6 +47,7 @@ struct libscols_line *scols_new_line(void)
 	INIT_LIST_HEAD(&ln->ln_lines);
 	INIT_LIST_HEAD(&ln->ln_children);
 	INIT_LIST_HEAD(&ln->ln_branch);
+	INIT_LIST_HEAD(&ln->ln_groups);
 	return ln;
 }
 
@@ -75,6 +76,8 @@ void scols_unref_line(struct libscols_line *ln)
 		DBG(CELL, ul_debugobj(ln, "dealloc"));
 		list_del(&ln->ln_lines);
 		list_del(&ln->ln_children);
+		list_del(&ln->ln_groups);
+		scols_unref_group(ln->group);
 		scols_line_free_cells(ln);
 		free(ln->color);
 		free(ln);

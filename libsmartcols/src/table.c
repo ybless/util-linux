@@ -79,6 +79,7 @@ struct libscols_table *scols_new_table(void)
 
 	INIT_LIST_HEAD(&tb->tb_lines);
 	INIT_LIST_HEAD(&tb->tb_columns);
+	INIT_LIST_HEAD(&tb->tb_groups);
 
 	DBG(TAB, ul_debugobj(tb, "alloc"));
 	ON_DBG(INIT, check_padding_debug(tb));
@@ -98,6 +99,17 @@ void scols_ref_table(struct libscols_table *tb)
 		tb->refcount++;
 }
 
+static void scols_table_remove_groups(struct libscols_table *tb)
+{
+	while (!list_empty(&tb->tb_groups)) {
+		struct libscols_group *gr = list_entry(tb->tb_groups.next,
+							struct libscols_group, gr_groups);
+		scols_group_remove_children(gr);
+		scols_group_remove_members(gr);
+		scols_unref_group(gr);
+	}
+}
+
 /**
  * scols_unref_table:
  * @tb: a pointer to a struct libscols_table instance
@@ -108,7 +120,8 @@ void scols_ref_table(struct libscols_table *tb)
 void scols_unref_table(struct libscols_table *tb)
 {
 	if (tb && (--tb->refcount <= 0)) {
-		DBG(TAB, ul_debugobj(tb, "dealloc"));
+		DBG(TAB, ul_debugobj(tb, "dealloc <-"));
+		scols_table_remove_groups(tb);
 		scols_table_remove_lines(tb);
 		scols_table_remove_columns(tb);
 		scols_unref_symbols(tb->symbols);
@@ -117,6 +130,7 @@ void scols_unref_table(struct libscols_table *tb)
 		free(tb->colsep);
 		free(tb->name);
 		free(tb);
+		DBG(TAB, ul_debug("<- done"));
 	}
 }
 

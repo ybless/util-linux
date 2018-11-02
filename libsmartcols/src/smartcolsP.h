@@ -29,6 +29,7 @@
 #define SCOLS_DEBUG_TAB		(1 << 4)
 #define SCOLS_DEBUG_COL		(1 << 5)
 #define SCOLS_DEBUG_BUFF	(1 << 6)
+#define SCOLS_DEBUG_GROUP	(1 << 7)
 #define SCOLS_DEBUG_ALL		0xFFFF
 
 UL_DEBUG_DECLARE_MASK(libsmartcols);
@@ -125,6 +126,7 @@ enum {
 };
 
 struct libscols_group {
+	int     refcount;
 	size_t	seqnum;
 	int	state;			/* SCOLS_GRSTATE_* */
 
@@ -256,6 +258,14 @@ extern char *buffer_get_safe_data(struct libscols_table *tb,
 				  size_t *cells,
 				  const char *safechars);
 extern size_t buffer_get_safe_art_size(struct libscols_buffer *buf);
+
+/*
+ * grouping.c
+ */
+void scols_ref_group(struct libscols_group *gr);
+void scols_group_remove_children(struct libscols_group *gr);
+void scols_group_remove_members(struct libscols_group *gr);
+void scols_unref_group(struct libscols_group *gr);
 
 /*
  * calculate.c

@@ -314,6 +314,12 @@ extern int scols_table_print_range_to_string(	struct libscols_table *tb,
 						struct libscols_line *end,
 						char **data);
 
+/* grouping.c */
+extern int scols_table_group_lines(    struct libscols_table *tb,
+                                struct libscols_line *a,
+                                struct libscols_line *b);
+extern int scols_line_link_group(struct libscols_line *ln, struct libscols_line *member);
+
 #ifdef __cplusplus
 }
 #endif

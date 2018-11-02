@@ -182,3 +182,8 @@ SMARTCOLS_2.33 {
 	scols_column_set_json_type;
 	scols_column_get_json_type;
 } SMARTCOLS_2.31;
+
+SMARTCOLS_2.34 {
+	scols_table_group_lines;
+	scols_line_link_group;
+} SMARTCOLS_2.33;
