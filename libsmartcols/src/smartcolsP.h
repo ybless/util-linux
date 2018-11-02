@@ -118,6 +118,21 @@ struct libscols_column {
 #define colsep(tb)	((tb)->colsep ? (tb)->colsep : " ")
 #define linesep(tb)	((tb)->linesep ? (tb)->linesep : "\n")
 
+enum {
+	SCOLS_GRSTATE_NONE = 0,		/* not printed yet */
+	SCOLS_GRSTATE_MEMBERS,		/* in members printing stage */
+	SCOLS_GRSTATE_CHILDREN		/* in children printing stage */
+};
+
+struct libscols_group {
+	size_t	seqnum;
+	int	state;			/* SCOLS_GRSTATE_* */
+
+	struct list_head gr_members;	/* head of line->ln_group */
+	struct list_head gr_children;	/* head of line->ln_children */
+	struct list_head gr_groups;	/* member of table->tb_groups */
+};
+
 /*
  * Table line
  */
@@ -131,12 +146,13 @@ struct libscols_line {
 	struct libscols_cell	*cells;		/* array with data */
 	size_t			ncells;		/* number of cells */
 
-	struct list_head	ln_lines;	/* table lines */
-	struct list_head	ln_branch;	/* begin of branch (head of ln_children) */
-	struct list_head	ln_children;
-	struct list_head	ln_group;
+	struct list_head	ln_lines;	/* member of table->tb_lines */
+	struct list_head	ln_branch;	/* head of line->ln_children */
+	struct list_head	ln_children;	/* member of line->ln_children or group->gr_children */
+	struct list_head	ln_groups;	/* member of group->gr_groups */
 
 	struct libscols_line	*parent;
+	struct libscols_group	*group;
 };
 
 enum {
@@ -166,6 +182,10 @@ struct libscols_table {
 
 	struct list_head	tb_columns;
 	struct list_head	tb_lines;
+
+	struct list_head	tb_groups;
+	size_t			ngroups;	/* number of overlapping group */
+
 	struct libscols_symbols	*symbols;
 	struct libscols_cell	title;		/* optional table title (for humans) */
 
