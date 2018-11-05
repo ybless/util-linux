@@ -44,7 +44,7 @@
 
 
 /* returns pointer to the end of used data */
-static int line_ascii_art_to_buffer(struct libscols_table *tb,
+static int tree_ascii_art_to_buffer(struct libscols_table *tb,
 				    struct libscols_line *ln,
 				    struct libscols_buffer *buf)
 {
@@ -57,7 +57,7 @@ static int line_ascii_art_to_buffer(struct libscols_table *tb,
 	if (!ln->parent)
 		return 0;
 
-	rc = line_ascii_art_to_buffer(tb, ln->parent, buf);
+	rc = tree_ascii_art_to_buffer(tb, ln->parent, buf);
 	if (rc)
 		return rc;
 
@@ -67,6 +67,128 @@ static int line_ascii_art_to_buffer(struct libscols_table *tb,
 		art = vertical_symbol(tb);
 
 	return buffer_append_data(buf, art);
+}
+
+static inline size_t get_active_ngroups(struct libscols_table *tb)
+{
+	size_t ct = 0;
+
+	if (has_active_groups(tb)) {
+		struct libscols_iter itr;
+		struct libscols_group *gr;
+
+		scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
+		while (scols_table_next_active_group(tb, &itr, &gr) == 0)
+			ct++;
+	}
+	return ct;
+}
+
+
+static size_t group_to_buffer(
+			struct libscols_table *tb,
+			struct libscols_line *ln,
+			struct libscols_group *gr,
+			struct libscols_buffer *buf,
+			const char **artend)
+{
+	const char *art = NULL;
+
+	DBG(GROUP, ul_debugobj(gr, "draw"));
+
+	if (ln->group != gr && ln->parent_group != gr) {
+		DBG(GROUP, ul_debugobj(gr, " fill space only"));
+		if (gr->state == SCOLS_GRSTATE_MEMBERS)
+			art = *artend ? "┆┈" : "┆ ";
+		else if (gr->state == SCOLS_GRSTATE_CHILDREN)
+			art = *artend ? "┈┆" : " ┆";
+
+	} else if (is_first_group_member(ln)) {
+		DBG(GROUP, ul_debugobj(gr, " first member"));
+		ln->group->state = SCOLS_GRSTATE_MEMBERS;
+		ln->group->seqnum = get_active_ngroups(tb) + 1;
+		list_add_tail(&ln->group->gr_groups_active, &tb->tb_groups_active);
+		art = "┌┈";
+		*artend = "▶";
+
+	} else if (is_last_group_member(ln)) {
+		DBG(GROUP, ul_debugobj(gr, " last member"));
+		ln->group->state = SCOLS_GRSTATE_CHILDREN;
+		art = "└┬";
+		*artend = "▶";
+
+	} else if (is_group_member(ln)) {
+		DBG(GROUP, ul_debugobj(gr, " middle member"));
+		art = "├┈";
+		*artend = "▶";
+
+	} else if (is_last_group_child(ln)) {
+		DBG(GROUP, ul_debugobj(gr, " last child"));
+		ln->parent_group->state = SCOLS_GRSTATE_NONE;
+		list_del_init(&ln->parent_group->gr_groups_active);
+		art = " └";
+		*artend = "┈";
+
+	} else if (is_group_child(ln)) {
+		DBG(GROUP, ul_debugobj(gr, " middle child"));
+		art = " ├";
+		*artend = "┈";
+	}
+
+	if (art) {
+		buffer_append_data(buf, art);
+		return mbs_safe_width(art);
+	}
+
+	return 0;
+}
+
+static int groups_ascii_art_to_buffer(	struct libscols_table *tb,
+				struct libscols_line *ln,
+				struct libscols_buffer *buf)
+{
+	size_t width = 0, i;
+	const char *artend = NULL, *fill;
+
+	if (!has_groups(tb))
+		return 0;
+
+	/* already active */
+	if (has_active_groups(tb)) {
+		struct libscols_iter itr;
+		struct libscols_group *gr;
+		size_t ct = 0;
+
+		scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
+		while (scols_table_next_active_group(tb, &itr, &gr) == 0) {
+			ct++;
+			for (i = ct; i < gr->seqnum; i++) {
+				buffer_append_data(buf, "  ");
+				width += 2;
+			}
+			width += group_to_buffer(tb, ln, gr, buf, &artend);
+		}
+
+	}
+
+	/* not yet active */
+	if (ln->group && ln->group->state == SCOLS_GRSTATE_NONE)
+		width += group_to_buffer(tb, ln, ln->group, buf, &artend);
+
+	fill = is_group_child(ln) || is_group_member(ln) ? "┄" : " ";
+
+	for (i = width; i < (tb->ngroups + 1) * 2; i++)
+		buffer_append_data(buf, fill);
+
+	if (artend)
+		buffer_append_data(buf, artend);
+	else
+		buffer_append_data(buf, fill);
+
+	fill = is_group_child(ln) ? "┄" : " ";
+	buffer_append_data(buf, fill);
+
+	return 0;
 }
 
 static int has_pending_data(struct libscols_table *tb)
@@ -107,7 +229,7 @@ static void print_empty_cell(struct libscols_table *tb,
 
 			if (art) {
 				/* whatever the rc, len_pad will be sensible */
-				line_ascii_art_to_buffer(tb, ln, art);
+				tree_ascii_art_to_buffer(tb, ln, art);
 				if (!list_empty(&ln->ln_branch) && has_pending_data(tb))
 					buffer_append_data(art, vertical_symbol(tb));
 				data = buffer_get_safe_data(tb, art, &len_pad, NULL);
@@ -458,18 +580,25 @@ int __cell_to_buffer(struct libscols_table *tb,
 		return buffer_set_data(buf, data);
 
 	/*
+	 * Group stuff
+	 */
+	if (!scols_table_is_json(tb) && has_groups(tb))
+		rc = groups_ascii_art_to_buffer(tb, ln, buf);
+
+	/*
 	 * Tree stuff
 	 */
-	if (ln->parent && !scols_table_is_json(tb)) {
-		rc = line_ascii_art_to_buffer(tb, ln->parent, buf);
+	if (!rc && ln->parent && !scols_table_is_json(tb)) {
+		rc = tree_ascii_art_to_buffer(tb, ln->parent, buf);
 
 		if (!rc && is_last_child(ln))
 			rc = buffer_append_data(buf, right_symbol(tb));
 		else if (!rc)
 			rc = buffer_append_data(buf, branch_symbol(tb));
-		if (!rc)
-			buffer_set_art_index(buf);
 	}
+
+	if (!rc && (ln->parent || has_groups(tb)) && !scols_table_is_json(tb))
+		buffer_set_art_index(buf);
 
 	if (!rc)
 		rc = buffer_append_data(buf, data);

@@ -39,10 +39,18 @@ static int group_overlap_check_line(struct libscols_group *gr, struct libscols_l
 	int rc = 0;
 
 	/* end of the group */
-	if (ln->group == gr && is_last_group_member(ln)) {
-		DBG(GROUP, ul_debugobj(gr, "%p terminates group", ln));
+	if (ln->group == gr
+	    && list_empty(&ln->group->gr_children)
+	    && is_last_group_member(ln)) {
+		DBG(GROUP, ul_debugobj(gr, "%p member terminates group", ln));
 		return 1;
 	}
+	if (ln->parent_group == gr
+	    && is_last_group_child(ln)) {
+		DBG(GROUP, ul_debugobj(gr, "%p child terminates group", ln));
+		return 1;
+	}
+
 	/* begin of the group */
 	if (!*ingroup && ln->group && ln->group == gr)
 		*ingroup = 1;
@@ -239,7 +247,9 @@ int __scols_calculate(struct libscols_table *tb, struct libscols_buffer *buf)
 	DBG(TAB, ul_debugobj(tb, "recounting widths (termwidth=%zu)", tb->termwidth));
 
 	colsepsz = mbs_safe_width(colsep(tb));
-	tb->ngroups = table_ovarlapping_ngroups(tb);
+
+	if (has_groups(tb))
+		tb->ngroups = table_ovarlapping_ngroups(tb);
 
 	/* set basic columns width
 	 */

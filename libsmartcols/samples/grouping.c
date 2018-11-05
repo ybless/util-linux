@@ -111,9 +111,15 @@ int main(int argc, char *argv[])
 	g2 = add_line(tb, NULL, "G2-A", "bla bla bla");
 	scols_table_group_lines(tb, g2, NULL);
 
+	/* add to group g2 */
+	ln = add_line(tb, NULL, "G2-B", "bla bla bla");
+	scols_table_group_lines(tb, g2, ln);
+
+
 	/* add member to the g1 */
 	ln = add_line(tb, NULL, "G1-C", "alb alb alb");
 	scols_table_group_lines(tb, g1, ln);
+
 
 	/* add children to the g1 */
 	ln = add_line(tb, NULL, "g1-child-A", "alb alb alb");
@@ -121,17 +127,13 @@ int main(int argc, char *argv[])
 	ln = add_line(tb, NULL, "g1-child-B", "alb alb alb");
 	scols_line_link_group(ln, g1);
 
+	/* add child to group g2 */
+	ln = add_line(tb, NULL, "g2-child-A", "alb alb alb");
+	scols_line_link_group(ln, g2);
+
 	/* it's possible to use standard tree for group children */
 	add_line(tb, ln, "g1-child-B-A", "alb alb alb");
 	add_line(tb, ln, "g1-child-B-B", "alb alb alb");
-
-	/* add to group g2 */
-	ln = add_line(tb, NULL, "G2-B", "bla bla bla");
-	scols_table_group_lines(tb, g2, ln);
-
-	/* add child to group g2 */
-	ln = add_line(tb, NULL, "g2-child-A", "alb alb alb");
-	scols_table_group_lines(tb, g2, ln);
 
 	/* standard (independent) line */
 	ln = add_line(tb, NULL, "foo", "bla bla bla");

@@ -107,6 +107,7 @@ int scols_table_group_lines(	struct libscols_table *tb,
 		INIT_LIST_HEAD(&gr->gr_members);
 		INIT_LIST_HEAD(&gr->gr_children);
 		INIT_LIST_HEAD(&gr->gr_groups);
+		INIT_LIST_HEAD(&gr->gr_groups_active);
 
 		/* add group to the table */
 		list_add_tail(&gr->gr_groups, &tb->tb_groups);
@@ -148,12 +149,13 @@ int scols_table_group_lines(	struct libscols_table *tb,
  */
 int scols_line_link_group(struct libscols_line *ln, struct libscols_line *member)
 {
-	if (!ln || !member || !member->group)
+	if (!ln || !member || !member->group || ln->parent)
 		return -EINVAL;
 
 	DBG(GROUP, ul_debugobj(member->group, "add child"));
 
 	list_add_tail(&ln->ln_children, &member->group->gr_children);
 	scols_ref_line(ln);
+	ln->parent_group = member->group;
 	return 0;
 }

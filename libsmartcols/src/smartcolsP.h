@@ -129,10 +129,12 @@ struct libscols_group {
 	int     refcount;
 
 	size_t	noverlaps;
+	size_t	seqnum;
 
 	struct list_head gr_members;	/* head of line->ln_group */
 	struct list_head gr_children;	/* head of line->ln_children */
 	struct list_head gr_groups;	/* member of table->tb_groups */
+	struct list_head gr_groups_active;	/* member of table->tb_groups_active */
 
 	int	state;			/* SCOLS_GRSTATE_* */
 
@@ -159,7 +161,8 @@ struct libscols_line {
 	struct list_head	ln_groups;	/* member of group->gr_groups */
 
 	struct libscols_line	*parent;
-	struct libscols_group	*group;
+	struct libscols_group	*parent_group;	/* for group childs */
+	struct libscols_group	*group;		/* for group members */
 };
 
 enum {
@@ -190,8 +193,9 @@ struct libscols_table {
 	struct list_head	tb_columns;
 	struct list_head	tb_lines;
 
-	struct list_head	tb_groups;
-	size_t			ngroups;	/* number of overlapping group */
+	struct list_head	tb_groups;		/* all defined groups */
+	struct list_head	tb_groups_active;	/* groups we print right now */
+	size_t			ngroups;		/* number of overlapping groups */
 
 	struct libscols_symbols	*symbols;
 	struct libscols_cell	title;		/* optional table title (for humans) */
@@ -250,6 +254,10 @@ static inline int scols_iter_is_last(const struct libscols_iter *itr)
 int scols_table_next_group(struct libscols_table *tb,
                           struct libscols_iter *itr,
                           struct libscols_group **gr);
+int scols_table_next_active_group(
+                        struct libscols_table *tb,
+                        struct libscols_iter *itr,
+                        struct libscols_group **gr);
 
 
 /*
@@ -343,5 +351,40 @@ static inline int is_last_group_member(struct libscols_line *ln)
 	return list_entry_is_last(&ln->ln_groups, &ln->group->gr_members);
 }
 
+static inline int is_first_group_member(struct libscols_line *ln)
+{
+	if (!ln || !ln->group)
+		return 0;
+
+	return list_entry_is_first(&ln->ln_groups, &ln->group->gr_members);
+}
+
+static inline int is_group_member(struct libscols_line *ln)
+{
+	return ln && ln->group;
+}
+
+static inline int is_last_group_child(struct libscols_line *ln)
+{
+	if (!ln || !ln->parent_group)
+		return 0;
+
+	return list_entry_is_last(&ln->ln_children, &ln->parent_group->gr_children);
+}
+
+static inline int is_group_child(struct libscols_line *ln)
+{
+	return ln && ln->parent_group;
+}
+
+static inline int has_active_groups(struct libscols_table *tb)
+{
+	return tb && !list_empty(&tb->tb_groups_active);
+}
+
+static inline int has_groups(struct libscols_table *tb)
+{
+	return tb && !list_empty(&tb->tb_groups);
+}
 
 #endif /* _LIBSMARTCOLS_PRIVATE_H */
