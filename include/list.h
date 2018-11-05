@@ -137,6 +137,16 @@ _INLINE_ int list_entry_is_last(struct list_head *entry, struct list_head *head)
 }
 
 /**
+ * list_entry_is_first - tests whether is entry first in the list
+ * @entry:	the entry to test.
+ * @head:	the list to test.
+ */
+_INLINE_ int list_entry_is_first(struct list_head *entry, struct list_head *head)
+{
+	return head->next == entry;
+}
+
+/**
  * list_splice - join two lists
  * @list:	the new list to add.
  * @head:	the place to add it in the first list.
