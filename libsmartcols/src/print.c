@@ -177,7 +177,7 @@ static int groups_ascii_art_to_buffer(	struct libscols_table *tb,
 
 	fill = is_group_child(ln) || is_group_member(ln) ? "┄" : " ";
 
-	for (i = width; i < (tb->ngroups + 1) * 2; i++)
+	for (i = width; i < (tb->ngroups + 1) * 2 + 1; i++)
 		buffer_append_data(buf, fill);
 
 	if (artend)
