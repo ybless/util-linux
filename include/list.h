@@ -208,6 +208,17 @@ _INLINE_ void list_splice(struct list_head *list, struct list_head *head)
 	for (pos = (head)->next, pnext = pos->next; pos != (head); \
 	     pos = pnext, pnext = pos->next)
 
+_INLINE_ size_t list_count_entries(struct list_head *head)
+{
+	struct list_head *pos;
+	size_t ct = 0;
+
+	list_for_each(pos, head)
+		ct++;
+
+	return ct;
+}
+
 #define MAX_LIST_LENGTH_BITS 20
 
 /*
