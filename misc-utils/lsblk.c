@@ -1687,29 +1687,29 @@ static void __attribute__((__noreturn__)) usage(void)
 	fputs(_("List information about block devices.\n"), out);
 
 	fputs(USAGE_OPTIONS, out);
+	fputs(_(" -D, --discard        print discard capabilities\n"), out);
+	fputs(_(" -E, --dedup <column> de-duplicate output by <column>\n"), out);
+	fputs(_(" -I, --include <list> show only devices with specified major numbers\n"), out);
+	fputs(_(" -J, --json           use JSON output format\n"), out);
+	fputs(_(" -O, --output-all     output all columns\n"), out);
+	fputs(_(" -P, --pairs          use key=\"value\" output format\n"), out);
+	fputs(_(" -S, --scsi           output info about SCSI devices\n"), out);
+	fputs(_(" -T, --tree           use tree format output\n"), out);
 	fputs(_(" -a, --all            print all devices\n"), out);
 	fputs(_(" -b, --bytes          print SIZE in bytes rather than in human readable format\n"), out);
 	fputs(_(" -d, --nodeps         don't print slaves or holders\n"), out);
-	fputs(_(" -D, --discard        print discard capabilities\n"), out);
-	fputs(_(" -z, --zoned          print zone model\n"), out);
 	fputs(_(" -e, --exclude <list> exclude devices by major number (default: RAM disks)\n"), out);
 	fputs(_(" -f, --fs             output info about filesystems\n"), out);
 	fputs(_(" -i, --ascii          use ascii characters only\n"), out);
-	fputs(_(" -I, --include <list> show only devices with specified major numbers\n"), out);
-	fputs(_(" -J, --json           use JSON output format\n"), out);
 	fputs(_(" -l, --list           use list format output\n"), out);
-	fputs(_(" -T, --tree           use tree format output\n"), out);
-	fputs(_(" -M, --dedup <column> de-duplicate output by <column>\n"), out);
 	fputs(_(" -m, --perms          output info about permissions\n"), out);
 	fputs(_(" -n, --noheadings     don't print headings\n"), out);
 	fputs(_(" -o, --output <list>  output columns\n"), out);
-	fputs(_(" -O, --output-all     output all columns\n"), out);
 	fputs(_(" -p, --paths          print complete device path\n"), out);
-	fputs(_(" -P, --pairs          use key=\"value\" output format\n"), out);
 	fputs(_(" -r, --raw            use raw output format\n"), out);
 	fputs(_(" -s, --inverse        inverse dependencies\n"), out);
-	fputs(_(" -S, --scsi           output info about SCSI devices\n"), out);
 	fputs(_(" -t, --topology       output info about topology\n"), out);
+	fputs(_(" -z, --zoned          print zone model\n"), out);
 	fputs(_(" -x, --sort <column>  sort output by <column>\n"), out);
 	fputs(_("     --sysroot <dir>  use specified directory as system root\n"), out);
 	fputs(USAGE_SEPARATOR, out);
@@ -1754,7 +1754,7 @@ int main(int argc, char *argv[])
 		{ "bytes",      no_argument,       NULL, 'b' },
 		{ "nodeps",     no_argument,       NULL, 'd' },
 		{ "discard",    no_argument,       NULL, 'D' },
-		{ "dedup",      required_argument, NULL, 'M' },
+		{ "dedup",      required_argument, NULL, 'E' },
 		{ "zoned",      no_argument,       NULL, 'z' },
 		{ "help",	no_argument,       NULL, 'h' },
 		{ "json",       no_argument,       NULL, 'J' },
@@ -1803,7 +1803,7 @@ int main(int argc, char *argv[])
 	lsblk_init_debug();
 
 	while((c = getopt_long(argc, argv,
-			       "abdDze:fhJlnmM:o:OpPiI:rstVSTx:", longopts, NULL)) != -1) {
+			       "abdDzE:e:fhJlnmo:OpPiI:rstVSTx:", longopts, NULL)) != -1) {
 
 		err_exclusive_options(c, longopts, excl, excl_st);
 
@@ -1920,7 +1920,7 @@ int main(int argc, char *argv[])
 		case 'V':
 			printf(UTIL_LINUX_VERSION);
 			return EXIT_SUCCESS;
-		case 'M':
+		case 'E':
 			lsblk->dedup_id = column_name_to_id(optarg, strlen(optarg));
 			if (lsblk->dedup_id >= 0)
 				break;
