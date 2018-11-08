@@ -59,6 +59,12 @@ static int group_overlap_check_line(struct libscols_group *gr, struct libscols_l
 	while (rc == 0 && scols_line_next_child(ln, &itr, &child) == 0)
 		rc = group_overlap_check_line(gr, child, ingroup);
 
+	if (rc == 0 && is_last_group_member(ln)) {
+		scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
+		while (rc == 0 && scols_line_next_group_child(ln, &itr, &child) == 0)
+			rc = group_overlap_check_line(gr, child, ingroup);
+	}
+
 	if (*ingroup && ln->group && ln->group != gr) {
 		DBG(GROUP, ul_debugobj(gr, "%p is another group=%p", ln, ln->group));
 		ln->group->overlap_flag = 1;
@@ -104,7 +110,7 @@ static size_t group_count_overlaps(struct libscols_table *tb, struct libscols_gr
 		 * tree root nodes -- it works for trees as well as for
 		 * non-trees tables.
 		 */
-		if (ln->parent)
+		if (ln->parent || ln->parent_group)
 			continue;
 		if (group_overlap_check_line(gr, ln, &ingroup) == 1)
 			break;
@@ -248,8 +254,15 @@ int __scols_calculate(struct libscols_table *tb, struct libscols_buffer *buf)
 
 	colsepsz = mbs_safe_width(colsep(tb));
 
-	if (has_groups(tb))
+	if (has_groups(tb)) {
+		struct libscols_group *gr;
+
 		tb->ngroups = table_ovarlapping_ngroups(tb);
+
+		scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
+		while (scols_table_next_group(tb, &itr, &gr) == 0)
+                        gr->state = SCOLS_GRSTATE_NONE;
+	}
 
 	/* set basic columns width
 	 */
