@@ -1029,12 +1029,35 @@ static void device_to_scols(
 	struct libscols_line *ln;
 	struct lsblk_iter itr;
 	struct lsblk_device *child = NULL;
+	int link_group = 0;
 
 	ON_DBG(DEV, if (ul_path_isopen_dirfd(dev->sysfs)) ul_debugobj(dev, "%s ---> is open!", dev->name));
 
-	ln = scols_table_new_line(tab, parent_line);
+	if (lsblk->merge && list_count_entries(&dev->parents) > 1) {
+		if (!lsblk_device_is_last_parent(dev, parent))
+			return;
+		link_group = 1;
+	}
+
+	ln = scols_table_new_line(tab, link_group ? NULL : parent_line);
 	if (!ln)
 		err(EXIT_FAILURE, _("failed to allocate output line"));
+
+	if (link_group) {
+		struct lsblk_device *p;
+		struct libscols_line *gr = parent_line;
+
+		/* Merge all my parents to the one group */
+		lsblk_reset_iter(&itr, LSBLK_ITER_FORWARD);
+		while (lsblk_device_next_parent(dev, &itr, &p) == 0) {
+			if (!p->scols_line)
+				continue;
+			scols_table_group_lines(tab, gr, p->scols_line);
+		}
+
+		/* Link the group -- this makes group->child connection */
+		scols_line_link_group(ln, gr);
+	}
 
 	/* read column specific data and set it to smartcols table line */
 	for (i = 0; i < ncolumns; i++) {
@@ -1054,13 +1077,15 @@ static void device_to_scols(
 			err(EXIT_FAILURE, _("failed to add output data"));
 	}
 
+	dev->scols_line = ln;
+
 	if (dev->npartitions == 0)
 		/* For partitions we often read from parental whole-disk sysfs,
 		 * otherwise we can close */
 		ul_path_close_dirfd(dev->sysfs);
 
-	lsblk_reset_iter(&itr, LSBLK_ITER_FORWARD);
 
+	lsblk_reset_iter(&itr, LSBLK_ITER_FORWARD);
 	while (lsblk_device_next_child(dev, &itr, &child) == 0)
 		device_to_scols(child, dev, tab, ln);
 
@@ -1544,6 +1569,7 @@ static int process_all_devices(struct lsblk_devtree *tr)
 			DBG(DEV, ul_debug(" %s: ignore (in-middle)", d->d_name));
 			goto next;
 		}
+
 		lsblk_devtree_add_root(tr, dev);
 		process_dependencies(tr, dev, 1);
 next:
@@ -1760,6 +1786,7 @@ int main(int argc, char *argv[])
 		{ "json",       no_argument,       NULL, 'J' },
 		{ "output",     required_argument, NULL, 'o' },
 		{ "output-all", no_argument,       NULL, 'O' },
+		{ "merge",      no_argument,       NULL, 'M' },
 		{ "perms",      no_argument,       NULL, 'm' },
 		{ "noheadings",	no_argument,       NULL, 'n' },
 		{ "list",       no_argument,       NULL, 'l' },
@@ -1803,7 +1830,7 @@ int main(int argc, char *argv[])
 	lsblk_init_debug();
 
 	while((c = getopt_long(argc, argv,
-			       "abdDzE:e:fhJlnmo:OpPiI:rstVSTx:", longopts, NULL)) != -1) {
+			       "abdDzE:e:fhJlnMmo:OpPiI:rstVSTx:", longopts, NULL)) != -1) {
 
 		err_exclusive_options(c, longopts, excl, excl_st);
 
@@ -1839,6 +1866,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'l':
 			lsblk->flags &= ~LSBLK_TREE; /* disable the default */
+			break;
+		case 'M':
+			lsblk->merge = 1;
 			break;
 		case 'n':
 			lsblk->flags |= LSBLK_NOHEADINGS;
