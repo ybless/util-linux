@@ -249,6 +249,14 @@ static inline int scols_iter_is_last(const struct libscols_iter *itr)
 }
 
 /*
+ * line.c
+ */
+int scols_line_next_group_child(struct libscols_line *ln,
+                          struct libscols_iter *itr,
+                          struct libscols_line **chld);
+
+
+/*
  * table.c
  */
 int scols_table_next_group(struct libscols_table *tb,
@@ -285,6 +293,7 @@ void scols_ref_group(struct libscols_group *gr);
 void scols_group_remove_children(struct libscols_group *gr);
 void scols_group_remove_members(struct libscols_group *gr);
 void scols_unref_group(struct libscols_group *gr);
+void scols_groups_fix_members_order(struct libscols_table *tb);
 
 /*
  * calculate.c

@@ -1411,16 +1411,26 @@ static int sort_line_children(struct libscols_line *ln, struct libscols_column *
 {
 	struct list_head *p;
 
-	if (list_empty(&ln->ln_branch))
-		return 0;
+	if (!list_empty(&ln->ln_branch)) {
+		list_for_each(p, &ln->ln_branch) {
+			struct libscols_line *chld =
+					list_entry(p, struct libscols_line, ln_children);
+			sort_line_children(chld, cl);
+		}
 
-	list_for_each(p, &ln->ln_branch) {
-		struct libscols_line *chld =
-				list_entry(p, struct libscols_line, ln_children);
-		sort_line_children(chld, cl);
+		list_sort(&ln->ln_branch, cells_cmp_wrapper_children, cl);
 	}
 
-	list_sort(&ln->ln_branch, cells_cmp_wrapper_children, cl);
+	if (is_first_group_member(ln)) {
+		list_for_each(p, &ln->group->gr_children) {
+			struct libscols_line *chld =
+					list_entry(p, struct libscols_line, ln_children);
+			sort_line_children(chld, cl);
+		}
+
+		list_sort(&ln->group->gr_children, cells_cmp_wrapper_children, cl);
+	}
+
 	return 0;
 }
 

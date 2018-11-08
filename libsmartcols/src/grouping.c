@@ -64,6 +64,44 @@ void scols_unref_group(struct libscols_group *gr)
 	}
 }
 
+static void groups_fix_members_order(struct libscols_line *ln)
+{
+	struct libscols_iter itr;
+	struct libscols_line *child;
+
+	if (ln->group)
+		list_add_tail(&ln->ln_groups, &ln->group->gr_members);
+
+	scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
+	while (scols_line_next_child(ln, &itr, &child) == 0)
+		groups_fix_members_order(child);
+}
+
+void scols_groups_fix_members_order(struct libscols_table *tb)
+{
+	struct libscols_iter itr;
+	struct libscols_line *ln;
+	struct libscols_group *gr;
+
+	/* remove all from groups lists */
+	scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
+	while (scols_table_next_group(tb, &itr, &gr) == 0) {
+		while (!list_empty(&gr->gr_members)) {
+			struct libscols_line *ln = list_entry(gr->gr_members.next,
+						struct libscols_line, ln_groups);
+			list_del_init(&ln->ln_groups);
+		}
+	}
+
+	/* add again to the groups list in order we walk in tree */
+	scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
+	while (scols_table_next_line(tb, &itr, &ln) == 0) {
+		if (ln->parent || ln->parent_group)
+			continue;
+		groups_fix_members_order(ln);
+	}
+}
+
 /**
  * scols_table_group_lines:
  * @tb: a pointer to a struct libscols_table instance

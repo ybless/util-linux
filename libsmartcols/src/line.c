@@ -312,6 +312,26 @@ int scols_line_next_child(struct libscols_line *ln,
 	return rc;
 }
 
+/* private API */
+int scols_line_next_group_child(struct libscols_line *ln,
+			  struct libscols_iter *itr,
+			  struct libscols_line **chld)
+{
+	int rc = 1;
+
+	if (!ln || !itr || !chld || !ln->group)
+		return -EINVAL;
+	*chld = NULL;
+
+	if (!itr->head)
+		SCOLS_ITER_INIT(itr, &ln->group->gr_children);
+	if (itr->p != itr->head) {
+		SCOLS_ITER_ITERATE(itr, *chld, struct libscols_line, ln_children);
+		rc = 0;
+	}
+
+	return rc;
+}
 
 /**
  * scols_line_is_ancestor:

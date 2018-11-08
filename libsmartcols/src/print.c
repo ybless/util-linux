@@ -177,9 +177,11 @@ static int groups_ascii_art_to_buffer(	struct libscols_table *tb,
 
 	fill = is_group_child(ln) || is_group_member(ln) ? "┄" : " ";
 
-	for (i = width; i < (tb->ngroups + 1) * 2 + 1; i++)
+	for (i = width; i < (tb->ngroups + 1) * 2; i++)
 		buffer_append_data(buf, fill);
 
+	if (!ln->group && !ln->parent_group && !ln->parent)
+		artend = "◆";
 	if (artend)
 		buffer_append_data(buf, artend);
 	else
@@ -619,8 +621,6 @@ static int print_line(struct libscols_table *tb,
 
 	assert(ln);
 
-	DBG(TAB, ul_debugobj(tb, "printing line"));
-
 	/* regular line */
 	scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
 	while (rc == 0 && scols_table_next_column(tb, &itr, &cl) == 0) {
@@ -780,7 +780,16 @@ int __scols_print_header(struct libscols_table *tb, struct libscols_buffer *buf)
 	while (rc == 0 && scols_table_next_column(tb, &itr, &cl) == 0) {
 		if (scols_column_is_hidden(cl))
 			continue;
-		rc = buffer_set_data(buf, scols_cell_get_data(&cl->header));
+
+		buffer_reset_data(buf);
+
+		if (has_groups(tb)
+		    && scols_table_is_tree(tb) && scols_column_is_tree(cl)) {
+			size_t i;
+			for (i = 0; rc == 0 && i < (tb->ngroups + 1) * 2 + 2; i++)
+				rc = buffer_append_data(buf, " ");
+		}
+		rc = buffer_append_data(buf, scols_cell_get_data(&cl->header));
 		if (!rc)
 			rc = print_data(tb, cl, NULL, &cl->header, buf);
 	}
@@ -844,7 +853,7 @@ static int print_tree_line(struct libscols_table *tb,
 			   int last,
 			   int last_in_table)
 {
-	int rc;
+	int rc, children = 0, gr_children = 0;
 
 	/* print the line */
 	fput_line_open(tb);
@@ -852,27 +861,47 @@ static int print_tree_line(struct libscols_table *tb,
 	if (rc)
 		goto done;
 
-	/* print children */
-	if (!list_empty(&ln->ln_branch)) {
-		struct list_head *p;
+	children = !list_empty(&ln->ln_branch);
+	gr_children = is_last_group_member(ln) && !list_empty(&ln->group->gr_children);
 
+	if (children || gr_children)
 		fput_children_open(tb);
+
+	/* print children */
+	if (children) {
+		struct list_head *p;
 
 		/* print all children */
 		list_for_each(p, &ln->ln_branch) {
 			struct libscols_line *chld =
 					list_entry(p, struct libscols_line, ln_children);
-			int last_child = p->next == &ln->ln_branch;
+			int last_child = !gr_children && p->next == &ln->ln_branch;
 
 			rc = print_tree_line(tb, chld, buf, last_child, last_in_table && last_child);
 			if (rc)
 				goto done;
 		}
-
-		fput_children_close(tb);
 	}
 
-	if (list_empty(&ln->ln_branch) || scols_table_is_json(tb))
+	if (gr_children) {
+		struct list_head *p;
+
+		/* print all group children */
+		list_for_each(p, &ln->group->gr_children) {
+			struct libscols_line *chld =
+					list_entry(p, struct libscols_line, ln_children);
+			int last_child = p->next == &ln->group->gr_children;
+
+			rc = print_tree_line(tb, chld, buf, last_child, last_in_table && last_child);
+			if (rc)
+				goto done;
+		}
+	}
+
+	if (children || gr_children)
+		fput_children_close(tb);
+
+	if ((!children && !gr_children) || scols_table_is_json(tb))
 		fput_line_close(tb, last, last_in_table);
 done:
 	return rc;
@@ -890,13 +919,16 @@ int __scols_print_tree(struct libscols_table *tb, struct libscols_buffer *buf)
 
 	scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
 
-	while (scols_table_next_line(tb, &itr, &ln) == 0)
+	while (scols_table_next_line(tb, &itr, &ln) == 0) {
 		if (!last || !ln->parent)
 			last = ln;
+		if (is_group_member(ln))
+			ln->group->state = SCOLS_GRSTATE_NONE;
+	}
 
 	scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
 	while (rc == 0 && scols_table_next_line(tb, &itr, &ln) == 0) {
-		if (ln->parent)
+		if (ln->parent || is_group_child(ln))
 			continue;
 		rc = print_tree_line(tb, ln, buf, ln == last, ln == last);
 	}
@@ -1021,6 +1053,12 @@ int __scols_initialize_printing(struct libscols_table *tb, struct libscols_buffe
 		rc = -ENOMEM;
 		goto err;
 	}
+
+	/*
+	 * Make sure groups members are in the same orders as the tree
+	 */
+	if (has_groups(tb) && scols_table_is_tree(tb))
+		scols_groups_fix_members_order(tb);
 
 	if (tb->format == SCOLS_FMT_HUMAN) {
 		rc = __scols_calculate(tb, *buf);
