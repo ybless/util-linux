@@ -186,4 +186,13 @@ SMARTCOLS_2.33 {
 SMARTCOLS_2.34 {
 	scols_table_group_lines;
 	scols_line_link_group;
+	scols_symbols_set_group_vertical;
+	scols_symbols_set_group_horizontal;
+	scols_symbols_set_group_first_member;
+	scols_symbols_set_group_last_member;
+	scols_symbols_set_group_middle_member;
+	scols_symbols_set_group_last_child;
+	scols_symbols_set_group_middle_child;
+	scols_symbols_set_alone_mark;
+	scols_symbols_set_member_mark;
 } SMARTCOLS_2.33;

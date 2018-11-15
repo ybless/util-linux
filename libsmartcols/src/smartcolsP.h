@@ -54,9 +54,22 @@ struct libscols_iter {
  */
 struct libscols_symbols {
 	int	refcount;
-	char	*branch;
-	char	*vert;
-	char	*right;
+
+	char	*tree_branch;
+	char	*tree_vert;
+	char	*tree_right;
+
+	char	*group_vert;
+	char	*group_horz;
+	char    *group_first_member;
+	char	*group_last_member;
+	char	*group_middle_member;
+	char	*group_last_child;
+	char	*group_middle_child;
+
+	char	*mark_alone;
+	char	*mark_member;
+
 	char	*title_padding;
 	char	*cell_padding;
 };
@@ -282,6 +295,7 @@ extern int buffer_append_data(struct libscols_buffer *buf, const char *str);
 extern int buffer_set_data(struct libscols_buffer *buf, const char *str);
 extern void buffer_set_art_index(struct libscols_buffer *buf);
 extern char *buffer_get_data(struct libscols_buffer *buf);
+extern char *buffer_get_position(struct libscols_buffer *buf);
 extern size_t buffer_get_size(struct libscols_buffer *buf);
 extern char *buffer_get_safe_data(struct libscols_table *tb,
 				  struct libscols_buffer *buf,

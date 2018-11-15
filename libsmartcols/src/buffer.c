@@ -87,6 +87,11 @@ char *buffer_get_data(struct libscols_buffer *buf)
 	return buf ? buf->begin : NULL;
 }
 
+char *buffer_get_position(struct libscols_buffer *buf)
+{
+	return buf ? buf->cur : NULL;
+}
+
 size_t buffer_get_size(struct libscols_buffer *buf)
 {
 	return buf ? buf->bufsz : 0;

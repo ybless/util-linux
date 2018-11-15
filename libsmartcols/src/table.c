@@ -29,13 +29,18 @@
 #include "smartcolsP.h"
 
 #ifdef HAVE_WIDECHAR
-#define UTF_V	"\342\224\202"	/* U+2502, Vertical line drawing char |  */
-#define UTF_VR	"\342\224\234"	/* U+251C, Vertical and right         |- */
-#define UTF_VL  "\342\224\244"  /* U+2524  Vertical and left         -|  */
-#define UTF_H	"\342\224\200"	/* U+2500, Horizontal                 -  */
-#define UTF_UR	"\342\224\224"	/* U+2514, Up and right              '-  */
-#define UTF_UL  "\342\224\230"  /* U+2518, Up and left                -' */
-#define UTF_DL  "\342\224\220"  /* U+2510, Down and left              -, */
+#define UTF_V	"\342\224\202"	/* U+2502, Vertical line drawing char  |   */
+#define UTF_VR	"\342\224\234"	/* U+251C, Vertical and right          |-  */
+#define UTF_H	"\342\224\200"	/* U+2500, Horizontal                  -   */
+#define UTF_UR	"\342\224\224"	/* U+2514, Up and right                '-  */
+
+#define UTF_V3  "\342\224\206"  /* U+2506 Triple Dash Vertical          |  */
+#define UTF_H3  "\342\224\210"  /* U+2504 Triple Dash Horizontal        -  */
+#define UTF_DR  "\342\224\214"  /* U+250C Down and Right                ,- */
+#define UTF_DH  "\342\224\254"  /* U+252C Down and Horizontal           |' */
+
+#define UTF_TR  "\342\226\266"  /* U+25B6 Black Right-Pointing Triangle  >  */
+#define UTF_BD  "\342\227\206"  /* U+25C6 Black Diamond                  *  */
 #endif /* !HAVE_WIDECHAR */
 
 #define is_last_column(_tb, _cl) \
@@ -860,15 +865,41 @@ int scols_table_set_default_symbols(struct libscols_table *tb)
 #if defined(HAVE_WIDECHAR)
 	if (!scols_table_is_ascii(tb) &&
 	    !strcmp(nl_langinfo(CODESET), "UTF-8")) {
+		/* tree chart */
 		scols_symbols_set_branch(sy, UTF_VR UTF_H);
 		scols_symbols_set_vertical(sy, UTF_V " ");
 		scols_symbols_set_right(sy, UTF_UR UTF_H);
+		/* groups chart */
+		scols_symbols_set_group_horizontal(sy, UTF_H3);
+		scols_symbols_set_group_vertical(sy, UTF_V3);
+
+		scols_symbols_set_group_first_member(sy, UTF_DR UTF_H3);
+		scols_symbols_set_group_last_member(sy, UTF_UR UTF_DH);
+		scols_symbols_set_group_middle_member(sy, UTF_VR UTF_H3);
+		scols_symbols_set_group_last_child(sy, " " UTF_UR);
+		scols_symbols_set_group_middle_child(sy, " " UTF_VR);
+
+		scols_symbols_set_alone_mark(sy, UTF_BD);
+		scols_symbols_set_member_mark(sy, UTF_TR);
 	} else
 #endif
 	{
+		/* tree chart */
 		scols_symbols_set_branch(sy, "|-");
 		scols_symbols_set_vertical(sy, "| ");
 		scols_symbols_set_right(sy, "`-");
+		/* groups chart */
+		scols_symbols_set_group_horizontal(sy, "-");
+		scols_symbols_set_group_vertical(sy, "|");
+
+		scols_symbols_set_group_first_member(sy, ",-");
+		scols_symbols_set_group_last_member(sy, "'-");
+		scols_symbols_set_group_middle_member(sy, "|-");
+		scols_symbols_set_group_last_child(sy, " `");
+		scols_symbols_set_group_middle_child(sy, "|-");
+
+		scols_symbols_set_alone_mark(sy, "*");
+		scols_symbols_set_member_mark(sy, ">");
 	}
 	scols_symbols_set_title_padding(sy, " ");
 	scols_symbols_set_cell_padding(sy, " ");
