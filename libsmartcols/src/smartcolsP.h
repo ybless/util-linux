@@ -90,7 +90,6 @@ struct libscols_column {
 	int	json_type;	/* SCOLS_JSON_* */
 
 	int	flags;
-	int	is_extreme;
 	char	*color;		/* default column color */
 	char	*safechars;	/* do not encode this bytes */
 
@@ -114,6 +113,10 @@ struct libscols_column {
 	struct list_head	cl_columns;
 
 	struct libscols_table	*table;
+
+	unsigned int	is_extreme : 1,		/* extreme width in the column */
+			is_groups  : 1;		/* print group chart */
+
 };
 
 #define colsep(tb)	((tb)->colsep ? (tb)->colsep : " ")

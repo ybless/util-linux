@@ -246,7 +246,7 @@ int __scols_calculate(struct libscols_table *tb, struct libscols_buffer *buf)
 	struct libscols_iter itr;
 	size_t width = 0, width_min = 0;	/* output width */
 	int stage, rc = 0;
-	int extremes = 0;
+	int extremes = 0, group_ncolumns = 0;
 	size_t colsepsz;
 
 
@@ -258,6 +258,7 @@ int __scols_calculate(struct libscols_table *tb, struct libscols_buffer *buf)
 		struct libscols_group *gr;
 
 		tb->ngroups = table_ovarlapping_ngroups(tb);
+		group_ncolumns = 1;
 
 		scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
 		while (scols_table_next_group(tb, &itr, &gr) == 0)
@@ -272,6 +273,13 @@ int __scols_calculate(struct libscols_table *tb, struct libscols_buffer *buf)
 
 		if (scols_column_is_hidden(cl))
 			continue;
+
+		/* we print groups chart only for the for the first tree column */
+		if (scols_column_is_tree(cl) && group_ncolumns == 1) {
+			cl->is_groups = 1;
+			group_ncolumns++;
+		}
+
 		rc = count_column_width(tb, cl, buf);
 		if (rc)
 			goto done;
@@ -280,7 +288,8 @@ int __scols_calculate(struct libscols_table *tb, struct libscols_buffer *buf)
 
 		width += cl->width + (is_last ? 0 : colsepsz);		/* separator for non-last column */
 		width_min += cl->width_min + (is_last ? 0 : colsepsz);
-		extremes += cl->is_extreme;
+		if (cl->is_extreme)
+			extremes++;
 	}
 
 	if (!tb->is_term) {

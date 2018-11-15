@@ -584,7 +584,7 @@ int __cell_to_buffer(struct libscols_table *tb,
 	/*
 	 * Group stuff
 	 */
-	if (!scols_table_is_json(tb) && has_groups(tb))
+	if (!scols_table_is_json(tb) && cl->is_groups)
 		rc = groups_ascii_art_to_buffer(tb, ln, buf);
 
 	/*
@@ -599,7 +599,7 @@ int __cell_to_buffer(struct libscols_table *tb,
 			rc = buffer_append_data(buf, branch_symbol(tb));
 	}
 
-	if (!rc && (ln->parent || has_groups(tb)) && !scols_table_is_json(tb))
+	if (!rc && (ln->parent || cl->is_groups) && !scols_table_is_json(tb))
 		buffer_set_art_index(buf);
 
 	if (!rc)
@@ -783,7 +783,7 @@ int __scols_print_header(struct libscols_table *tb, struct libscols_buffer *buf)
 
 		buffer_reset_data(buf);
 
-		if (has_groups(tb)
+		if (cl->is_groups
 		    && scols_table_is_tree(tb) && scols_column_is_tree(cl)) {
 			size_t i;
 			for (i = 0; rc == 0 && i < (tb->ngroups + 1) * 2 + 2; i++)
