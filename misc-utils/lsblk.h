@@ -122,6 +122,7 @@ struct lsblk_device {
 
 	unsigned int	is_mounted : 1,
 			is_swap : 1,
+			is_printed : 1,
 			udev_requested : 1,
 			blkid_requested : 1;
 };

@@ -1029,6 +1029,10 @@ static void device_to_scols(
 
 	ON_DBG(DEV, if (ul_path_isopen_dirfd(dev->sysfs)) ul_debugobj(dev, "%s ---> is open!", dev->name));
 
+	/* Do not print device more than one in --list mode */
+	if (!(lsblk->flags & LSBLK_TREE) && dev->is_printed)
+		return;
+
 	if (lsblk->merge && list_count_entries(&dev->parents) > 1) {
 		if (!lsblk_device_is_last_parent(dev, parent))
 			return;
@@ -1038,6 +1042,8 @@ static void device_to_scols(
 	ln = scols_table_new_line(tab, link_group ? NULL : parent_line);
 	if (!ln)
 		err(EXIT_FAILURE, _("failed to allocate output line"));
+
+	dev->is_printed = 1;
 
 	if (link_group) {
 		struct lsblk_device *p;
