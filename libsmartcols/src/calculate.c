@@ -65,11 +65,11 @@ static int group_overlap_check_line(struct libscols_group *gr, struct libscols_l
 			rc = group_overlap_check_line(gr, child, ingroup);
 	}
 
-	if (*ingroup && ln->group && ln->group != gr) {
+	if (rc == 0 && *ingroup && ln->group && ln->group != gr) {
 		DBG(GROUP, ul_debugobj(gr, "%p is another group=%p", ln, ln->group));
 		ln->group->overlap_flag = 1;
 	}
-	return 0;
+	return rc;
 }
 
 static void groups_ovarlap_cleanup(struct libscols_table *tb)
