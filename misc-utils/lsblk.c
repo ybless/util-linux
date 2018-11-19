@@ -141,7 +141,6 @@ struct colinfo {
 	double		whint;		/* width hint (N < 1 is in percent of termwidth) */
 	int		flags;		/* SCOLS_FL_* */
 	const char      *help;
-
 	int		type;		/* COLTYPE_* */
 };
 
@@ -216,7 +215,6 @@ struct lsblk *lsblk;	/* global handler */
  */
 static int columns[ARRAY_SIZE(infos) * 2];
 static size_t ncolumns;
-
 
 static inline void add_column(int id)
 {
@@ -698,7 +696,6 @@ static int is_removable_device(struct lsblk_device *dev, struct lsblk_device *pa
 			/* parent is something else, use sysfs parent */
 			ul_path_scanf(pc, "removable", "%d", &dev->removable);
 	}
-
 done:
 	if (dev->removable == -1)
 		dev->removable = 0;
@@ -714,7 +711,6 @@ static uint64_t device_get_discard_granularity(struct lsblk_device *dev)
 
 	return dev->discard_granularity;
 }
-
 
 /*
  * Generates data (string) for column specified by column ID for specified device. If sortdata
@@ -1728,6 +1724,7 @@ static void __attribute__((__noreturn__)) usage(void)
 	fputs(_(" -f, --fs             output info about filesystems\n"), out);
 	fputs(_(" -i, --ascii          use ascii characters only\n"), out);
 	fputs(_(" -l, --list           use list format output\n"), out);
+	fputs(_(" -M, --merge          group parents of sub-trees (usable for RAIDs, Multi-path)\n"), out);
 	fputs(_(" -m, --perms          output info about permissions\n"), out);
 	fputs(_(" -n, --noheadings     don't print headings\n"), out);
 	fputs(_(" -o, --output <list>  output columns\n"), out);
