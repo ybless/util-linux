@@ -146,6 +146,7 @@ struct libscols_group {
 
 	size_t	noverlaps;
 	size_t	seqnum;
+	size_t  nmembers;
 
 	struct list_head gr_members;	/* head of line->ln_group */
 	struct list_head gr_children;	/* head of line->ln_children */
@@ -212,6 +213,7 @@ struct libscols_table {
 	struct list_head	tb_groups;		/* all defined groups */
 	struct list_head	tb_groups_active;	/* groups we print right now */
 	size_t			ngroups;		/* number of overlapping groups */
+	size_t			ngroups_extra;		/* group child is member of another group */
 
 	struct libscols_symbols	*symbols;
 	struct libscols_cell	title;		/* optional table title (for humans) */

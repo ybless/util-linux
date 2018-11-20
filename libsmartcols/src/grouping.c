@@ -29,6 +29,8 @@ void scols_group_remove_children(struct libscols_group *gr)
 
 		DBG(GROUP, ul_debugobj(gr, "remove child"));
 		list_del_init(&ln->ln_children);
+		scols_ref_group(ln->parent_group);
+		ln->parent_group = NULL;
 		scols_unref_line(ln);
 	}
 }
@@ -42,10 +44,11 @@ void scols_group_remove_members(struct libscols_group *gr)
 		struct libscols_line *ln = list_entry(gr->gr_members.next,
 						struct libscols_line, ln_groups);
 
-		DBG(GROUP, ul_debugobj(gr, "remove member"));
+		DBG(GROUP, ul_debugobj(gr, "remove member [%p]", ln));
 		list_del_init(&ln->ln_groups);
 
 		scols_unref_group(ln->group);
+		ln->group->nmembers++;
 		ln->group = NULL;
 
 		scols_unref_line(ln);
@@ -69,12 +72,25 @@ static void groups_fix_members_order(struct libscols_line *ln)
 	struct libscols_iter itr;
 	struct libscols_line *child;
 
-	if (ln->group)
+	if (ln->group) {
 		list_add_tail(&ln->ln_groups, &ln->group->gr_members);
+		DBG(GROUP, ul_debugobj(ln->group, "fixing member %p [%zu/%zu]",
+					ln, ln->group->nmembers,
+					list_count_entries(&ln->group->gr_members)));
+	}
 
 	scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
 	while (scols_line_next_child(ln, &itr, &child) == 0)
 		groups_fix_members_order(child);
+
+	if (ln->group
+	    && is_last_group_member(ln)
+	    && ln->group->nmembers == list_count_entries(&ln->group->gr_members)) {
+			DBG(GROUP, ul_debugobj(ln->group, "fixing childs"));
+			scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
+			while (scols_line_next_group_child(ln, &itr, &child) == 0)
+				groups_fix_members_order(child);
+	}
 }
 
 void scols_groups_fix_members_order(struct libscols_table *tb)
@@ -100,6 +116,18 @@ void scols_groups_fix_members_order(struct libscols_table *tb)
 			continue;
 		groups_fix_members_order(ln);
 	}
+
+	/* If group child is memeber of another group *
+	scols_reset_iter(&itr, SCOLS_ITER_FORWARD);
+	while (scols_table_next_group(tb, &itr, &gr) == 0) {
+		struct libscols_iter xitr;
+		struct libscols_line *child;
+
+		scols_reset_iter(&xitr, SCOLS_ITER_FORWARD);
+		while (scols_line_next_group_child(ln, &xitr, &child) == 0)
+			groups_fix_members_order(child);
+	}
+	*/
 }
 
 /**
@@ -155,6 +183,7 @@ int scols_table_group_lines(	struct libscols_table *tb,
 	if (a && !a->group) {
 		DBG(GROUP, ul_debugobj(gr, "add member"));
 		a->group = gr;
+		gr->nmembers++;
 		scols_ref_group(gr);
 
 		list_add_tail(&a->ln_groups, &gr->gr_members);
@@ -165,6 +194,7 @@ int scols_table_group_lines(	struct libscols_table *tb,
 	if (b && !b->group) {
 		DBG(GROUP, ul_debugobj(gr, "add member"));
 		b->group = gr;
+		gr->nmembers++;
 		scols_ref_group(gr);
 
 		list_add_tail(&b->ln_groups, &gr->gr_members);
@@ -194,6 +224,9 @@ int scols_line_link_group(struct libscols_line *ln, struct libscols_line *member
 
 	list_add_tail(&ln->ln_children, &member->group->gr_children);
 	scols_ref_line(ln);
+
 	ln->parent_group = member->group;
+	scols_ref_group(member->group);
+
 	return 0;
 }

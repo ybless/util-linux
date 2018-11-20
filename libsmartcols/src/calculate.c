@@ -110,6 +110,8 @@ static size_t group_count_overlaps(struct libscols_table *tb, struct libscols_gr
 		 * tree root nodes -- it works for trees as well as for
 		 * non-trees tables.
 		 */
+		if (ln->group && ln->parent_group)
+			tb->ngroups_extra++;
 		if (ln->parent || ln->parent_group)
 			continue;
 		if (group_overlap_check_line(gr, ln, &ingroup) == 1)
@@ -118,7 +120,7 @@ static size_t group_count_overlaps(struct libscols_table *tb, struct libscols_gr
 
 	/* all group tested -- summarize result */
 	gr->noverlaps = groups_ovarlap_count(tb);
-	DBG(GROUP, ul_debugobj(gr, "noverlaps: %zu", gr->noverlaps));
+	DBG(GROUP, ul_debugobj(gr, "noverlaps: %zu, extra: %zu", gr->noverlaps, tb->ngroups_extra));
 	return gr->noverlaps;
 }
 

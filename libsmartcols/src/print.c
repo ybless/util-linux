@@ -80,6 +80,7 @@ static int tree_ascii_art_to_buffer(struct libscols_table *tb,
 	return buffer_append_data(buf, art);
 }
 
+/* TODO: use list_count_entries() */
 static inline size_t get_active_ngroups(struct libscols_table *tb)
 {
 	size_t ct = 0;
@@ -105,7 +106,7 @@ static size_t group_to_buffer(
 {
 	char *start;
 
-	DBG(GROUP, ul_debugobj(gr, "draw"));
+	DBG(GROUP, ul_debugobj(gr, "draw line=%p", ln));
 
 	start = buffer_get_position(buf);
 
@@ -121,8 +122,11 @@ static size_t group_to_buffer(
 		list_add_tail(&ln->group->gr_groups_active, &tb->tb_groups_active);
 		//buffer_append_data(buf, grp_m_first_symbol(tb));
 		//*artend = member_mark_symbol(tb);
-		buffer_append_data(buf, "┌");
-		*artend = "┈▶";
+		if (!ln->parent_group) {
+			buffer_append_data(buf, "┌");
+			*artend = "┈▶";
+		} else
+			buffer_append_data(buf, "┌▶");
 
 	} else if (ln->group == gr && is_last_group_member(ln)) {
 		DBG(GROUP, ul_debugobj(gr, " last member"));
@@ -171,7 +175,7 @@ static int groups_ascii_art_to_buffer(	struct libscols_table *tb,
 
 	if (!has_groups(tb))
 		return 0;
-	maxwidth = tb->ngroups + 2;
+	maxwidth = tb->ngroups + 2 + tb->ngroups_extra;
 
 	/* already active */
 	if (has_active_groups(tb)) {
