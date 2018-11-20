@@ -5,6 +5,7 @@ check_PROGRAMS += \
 	sample-scols-continuous \
 	sample-scols-fromfile \
 	sample-scols-grouping \
+	sample-scols-grouping2 \
 	sample-scols-maxout
 
 sample_scols_cflags = $(AM_CFLAGS) $(NO_UNUSED_WARN_CFLAGS) \
@@ -41,4 +42,8 @@ sample_scols_fromfile_CFLAGS = $(sample_scols_cflags)
 sample_scols_grouping_SOURCES = libsmartcols/samples/grouping.c
 sample_scols_grouping_LDADD = $(sample_scols_ldadd) libcommon.la
 sample_scols_grouping_CFLAGS = $(sample_scols_cflags)
+
+sample_scols_grouping2_SOURCES = libsmartcols/samples/grouping2.c
+sample_scols_grouping2_LDADD = $(sample_scols_ldadd) libcommon.la
+sample_scols_grouping2_CFLAGS = $(sample_scols_cflags)
 

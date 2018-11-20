@@ -103,7 +103,6 @@ int main(int argc, char *argv[])
 	add_line(tb, p2, "X-b-a", "bla bla bla");
 	add_line(tb, p1, "X-c", "bla bla bla");
 
-
 	/* create another group G2 */
 	g2 = add_line(tb, NULL, "G2-A", "bla bla bla");
 	scols_table_group_lines(tb, g2, NULL);
@@ -123,10 +122,8 @@ int main(int argc, char *argv[])
 	scols_line_link_group(ln, g1);
 
 	/* add member to the g1 */
-//	ln = add_line(tb, NULL, "G1-C", "alb alb alb");
-//	scols_table_group_lines(tb, g1, ln);
-
-
+	ln = add_line(tb, NULL, "G1-C", "alb alb alb");
+	scols_table_group_lines(tb, g1, ln);
 
 	/* add child to group g2 */
 	ln = add_line(tb, NULL, "g2-child-A", "alb alb alb");
