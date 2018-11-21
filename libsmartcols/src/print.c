@@ -119,14 +119,18 @@ static size_t group_to_buffer(
 		DBG(GROUP, ul_debugobj(gr, " first member"));
 		ln->group->state = SCOLS_GRSTATE_MEMBERS;
 		ln->group->seqnum = get_active_ngroups(tb) + 1;
+		DBG(GROUP, ul_debugobj(gr, "  add new active group [%zu]", ln->group->seqnum));
 		list_add_tail(&ln->group->gr_groups_active, &tb->tb_groups_active);
 		//buffer_append_data(buf, grp_m_first_symbol(tb));
 		//*artend = member_mark_symbol(tb);
-		if (!ln->parent_group) {
+		if (ln->parent_group) {
+			buffer_append_data(buf, "┌▶");
+			if (is_last_group_child(ln))
+				ln->group->seqnum++;
+		} else {
 			buffer_append_data(buf, "┌");
 			*artend = "┈▶";
-		} else
-			buffer_append_data(buf, "┌▶");
+		}
 
 	} else if (ln->group == gr && is_last_group_member(ln)) {
 		DBG(GROUP, ul_debugobj(gr, " last member"));
@@ -147,6 +151,7 @@ static size_t group_to_buffer(
 		DBG(GROUP, ul_debugobj(gr, " last child"));
 		ln->parent_group->state = SCOLS_GRSTATE_NONE;
 		list_del_init(&ln->parent_group->gr_groups_active);
+		DBG(GROUP, ul_debugobj(gr, "  remove active group [%zu]", ln->parent_group->seqnum));
 		//buffer_append_data(buf, grp_c_last_symbol(tb));
 		//*artend = grp_horizontal_symbol(tb);
 		buffer_append_data(buf, " ");
